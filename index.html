@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Verificador SENA Sofia Plus</title>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --border: #e2e5ea;
+    --primary: #185FA5;
+    --primary-dark: #0C447C;
+    --success: #3B6D11;
+    --success-bg: #EAF3DE;
+    --danger: #A32D2D;
+    --danger-bg: #FCEBEB;
+    --warn-bg: #FAEEDA;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --radius: 10px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .topbar { background: var(--primary); color: white; padding: 14px 20px; display: flex; align-items: center; gap: 12px; }
+  .topbar svg { width: 24px; height: 24px; fill: white; flex-shrink: 0; }
+  .topbar h1 { font-size: 16px; font-weight: 600; }
+  .topbar p { font-size: 12px; opacity: .8; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; overflow: hidden; }
+  .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .card-header h2 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card-body { padding: 18px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .form-group input { height: 40px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 14px; font-family: var(--font); outline: none; transition: border-color .15s; background: #fff; }
+  .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(24,95,165,.12); }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--primary); background: #f0f6ff; }
+  .upload-zone svg { width: 36px; height: 36px; fill: var(--muted); margin-bottom: 10px; }
+  .upload-zone p { font-size: 14px; color: var(--muted); }
+  .upload-zone span { font-size: 12px; color: var(--primary); font-weight: 600; }
+  #file-input { display: none; }
+  .file-ready { background: var(--success-bg); border-color: var(--success); }
+  .file-ready svg { fill: var(--success); }
+  .file-ready p { color: var(--success); font-weight: 600; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat { background: #f8f9fb; border-radius: 8px; padding: 12px; text-align: center; }
+  .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+  .stat-num { font-size: 26px; font-weight: 700; margin-top: 2px; }
+  .stat-num.blue { color: var(--primary); }
+  .stat-num.green { color: var(--success); }
+  .stat-num.red { color: var(--danger); }
+  .stat-num.gray { color: var(--muted); }
+
+  .progress-wrap { margin-bottom: 14px; }
+  .progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .progress-bar { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 99px; transition: width .4s ease; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .btn { height: 38px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--border); background: #fff; color: var(--text); font-size: 13px; font-family: var(--font); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: background .15s; white-space: nowrap; }
+  .btn:hover { background: #f3f4f6; }
+  .btn:active { transform: scale(.98); }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-primary:disabled { background: #b0bec5; border-color: #b0bec5; cursor: not-allowed; transform: none; }
+  .btn-success { background: var(--success); color: #fff; border-color: var(--success); }
+  .btn-success:hover { background: #27500a; }
+
+  .search-input { flex: 1; min-width: 180px; height: 38px; border: 1px solid var(--border); border-radius: 8px; padding: 0 12px; font-size: 13px; font-family: var(--font); outline: none; }
+  .search-input:focus { border-color: var(--primary); }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { padding: 9px 12px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfc; }
+
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .badge-success { background: var(--success-bg); color: var(--success); }
+  .badge-danger  { background: var(--danger-bg); color: var(--danger); }
+  .badge-warn    { background: var(--warn-bg); color: #854F0B; }
+  .badge-gray    { background: #f0f0f0; color: var(--muted); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .dot-pulse { animation: pulse .9s infinite; }
+
+  .mono { font-family: 'Courier New', monospace; font-size: 12px; }
+  .name-col { max-width: 200px; }
+
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
+  .alert-info    { background: #e8f4fd; color: #0c5a8c; border: 1px solid #b3d9f5; }
+  .alert-danger  { background: var(--danger-bg); color: var(--danger); border: 1px solid #f5b3b3; }
+  .alert-success { background: var(--success-bg); color: var(--success); border: 1px solid #b3d9a0; }
+
+  .chev { transition: transform .2s; display: inline-block; }
+  .chev.open { transform: rotate(180deg); }
+
+  @media (max-width: 580px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .name-col { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .topbar h1 { font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+  <div>
+    <h1>Verificador SENA Sofia Plus</h1>
+    <p>Validación automática de matrícula de aprendices</p>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ALERTA DE ESTADO -->
+  <div id="main-alert" style="display:none;" class="alert"></div>
+
+  <!-- CREDENCIALES -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard('cred')">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Credenciales Sofia Plus
+      </h2>
+      <span class="chev" id="chev-cred">▾</span>
+    </div>
+    <div class="card-body" id="body-cred">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Número de cédula</label>
+          <input type="text" id="cedula" placeholder="Tu número de cédula" autocomplete="username"/>
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+        </div>
+      </div>
+      <p class="hint">Las credenciales se usan solo para iniciar sesión en Sofia Plus. No se almacenan en ningún servidor.</p>
+    </div>
+  </div>
+
+  <!-- SUBIR EXCEL -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard('excel')">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Archivo Excel de aprendices
+      </h2>
+      <span class="chev open" id="chev-excel">▾</span>
+    </div>
+    <div class="card-body" id="body-excel">
+      <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+        <p id="upload-text">Arrastra el archivo Excel aquí o haz clic para seleccionar</p>
+        <span>Formato: ARCHIVO_PLANO_DE_APRENDICES_V4.xlsx</span>
+        <input type="file" id="file-input" accept=".xlsx,.xls" onchange="handleFile(this.files[0])"/>
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTA Y RESULTADOS -->
+  <div class="card" id="results-card">
+    <div class="card-header" style="cursor:default;">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Lista de aprendices
+        <span id="count-badge" class="badge badge-gray">0 aprendices</span>
+      </h2>
+    </div>
+    <div class="card-body">
+
+      <div class="stats-row">
+        <div class="stat"><div class="stat-label">Total</div><div class="stat-num blue" id="s-total">0</div></div>
+        <div class="stat"><div class="stat-label">Matriculados</div><div class="stat-num green" id="s-ok">0</div></div>
+        <div class="stat"><div class="stat-label">No existen</div><div class="stat-num red" id="s-no">0</div></div>
+        <div class="stat"><div class="stat-label">Pendientes</div><div class="stat-num gray" id="s-pend">0</div></div>
+      </div>
+
+      <div id="progress-section" style="display:none;" class="progress-wrap">
+        <div class="progress-info">
+          <span id="prog-text">Iniciando...</span>
+          <span id="prog-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btn-start" onclick="startVerification()" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Iniciar verificación
+        </button>
+        <button class="btn" onclick="resetAll()">Reiniciar</button>
+        <button class="btn btn-success" id="btn-dl" style="display:none;" onclick="downloadExcel()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Descargar Excel
+        </button>
+        <input class="search-input" type="text" placeholder="Buscar nombre o documento..." oninput="filterTable(this.value)"/>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tipo</th>
+              <th>Documento</th>
+              <th>Nombre completo</th>
+              <th>Tipo población</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONFIGURACIÓN N8N -->
+  <div class="card">
+    <div class="card-header" onclick="toggleCard('n8n')">
+      <h2>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07"/></svg>
+        Configuración del webhook N8N
+      </h2>
+      <span class="chev" id="chev-n8n">▾</span>
+    </div>
+    <div class="card-body" id="body-n8n">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>URL del webhook N8N</label>
+        <input type="text" id="webhook-url" placeholder="http://TU-IP:5678/webhook/sena-verificar"
+               value="" oninput="saveWebhook(this.value)"/>
+      </div>
+      <p class="hint">Esta URL se guarda en tu navegador. Nunca se comparte. Encuéntrala en N8N → Webhook node → Production URL.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- SheetJS para leer y generar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ─── ESTADO GLOBAL ────────────────────────────────────
+let aprendices = [];
+let statuses   = [];
+let workbook   = null; // WorkBook original de SheetJS
+let running    = false;
+
+// ─── CARDS TOGGLE ─────────────────────────────────────
+function toggleCard(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  chev.classList.toggle('open', !open);
+}
+// Inicialmente cerrar credenciales y n8n
+document.getElementById('body-cred').style.display = '';
+document.getElementById('body-n8n').style.display  = 'none';
+
+// ─── WEBHOOK PERSISTENCIA ─────────────────────────────
+function saveWebhook(v) { localStorage.setItem('sena_webhook', v); }
+document.getElementById('webhook-url').value = localStorage.getItem('sena_webhook') || '';
+
+// ─── MANEJO DE ARCHIVO ────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+}
+
+function handleFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      workbook = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows  = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      // Filas de datos empiezan en índice 4 (fila 5 del Excel, 0-indexed)
+      aprendices = [];
+      for (let i = 4; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r[0] && !r[1]) continue; // fila vacía
+        aprendices.push({
+          rowIdx:    i,
+          tipo:      String(r[0] || '').trim(),
+          doc:       String(r[1] || '').trim(),
+          nombre:    String(r[2] || '').trim(),
+          poblacion: String(r[3] || '').trim(),
+        });
+      }
+      statuses = aprendices.map(() => 'pending');
+
+      const zone = document.getElementById('upload-zone');
+      zone.classList.add('file-ready');
+      document.getElementById('upload-text').textContent = `✓ ${file.name} — ${aprendices.length} aprendices cargados`;
+      document.getElementById('btn-start').disabled = false;
+      renderTable('');
+      showAlert('success', `Archivo cargado: ${aprendices.length} aprendices listos para verificar.`);
+    } catch(err) {
+      showAlert('danger', 'Error leyendo el archivo Excel. Verifica que sea el formato correcto.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ─── VERIFICACIÓN PRINCIPAL ───────────────────────────
+async function startVerification() {
+  const cedula   = document.getElementById('cedula').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const webhook  = document.getElementById('webhook-url').value.trim();
+
+  if (!cedula || !password) {
+    showAlert('danger', 'Ingresa tu cédula y contraseña de Sofia Plus para continuar.');
+    return;
+  }
+  if (!aprendices.length) {
+    showAlert('danger', 'Carga el archivo Excel primero.');
+    return;
+  }
+
+  running = true;
+  statuses = aprendices.map(() => 'pending');
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-dl').style.display = 'none';
+  document.getElementById('progress-section').style.display = '';
+  hideAlert();
+  renderTable('');
+
+  if (webhook) {
+    // ── Modo REAL: llamada a N8N ──────────────────────
+    try {
+      showAlert('info', 'Conectando con N8N... esto puede tardar varios minutos según el número de aprendices.');
+      const resp = await fetch(webhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cedula,
+          password,
+          aprendices: aprendices.map(a => ({ tipo: a.tipo, doc: a.doc, nombre: a.nombre })),
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      data.resultados.forEach((r, i) => {
+        statuses[i] = r.estado === 'MATRICULADO' ? 'ok' : 'no';
+      });
+      renderTable('');
+      finishVerification();
+    } catch (err) {
+      running = false;
+      document.getElementById('btn-start').disabled = false;
+      showAlert('danger', `Error al conectar con N8N: ${err.message}. Verifica que el webhook esté activo.`);
+    }
+
+  } else {
+    // ── Modo DEMO: simulación visual ──────────────────
+    showAlert('info', 'Modo demo activado (sin webhook configurado). Configura la URL de N8N para verificación real.');
+    for (let i = 0; i < aprendices.length; i++) {
+      statuses[i] = 'checking';
+      renderTable('');
+      updateProgress(i, aprendices.length);
+      await sleep(500 + Math.random() * 400);
+      statuses[i] = Math.random() > 0.2 ? 'ok' : 'no';
+      renderTable('');
+    }
+    finishVerification();
+  }
+}
+
+function finishVerification() {
+  running = false;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('btn-dl').style.display = '';
+  updateProgress(aprendices.length, aprendices.length);
+  const ok = statuses.filter(s => s === 'ok').length;
+  const no = statuses.filter(s => s === 'no').length;
+  showAlert('success', `Verificación completa: ${ok} MATRICULADOS, ${no} NO EXISTEN.`);
+}
+
+// ─── TABLA ────────────────────────────────────────────
+function renderTable(q) {
+  const tbody = document.getElementById('tbody');
+  let html = '';
+  let shown = 0;
+  const qLow = q.toLowerCase();
+
+  aprendices.forEach((a, i) => {
+    if (qLow && !a.nombre.toLowerCase().includes(qLow) && !a.doc.includes(qLow)) return;
+    shown++;
+    const st = statuses[i];
+    let badge = '';
+    if (st === 'ok')       badge = '<span class="badge badge-success"><span class="dot"></span>MATRICULADO</span>';
+    else if (st === 'no')  badge = '<span class="badge badge-danger"><span class="dot"></span>NO EXISTE</span>';
+    else if (st === 'checking') badge = '<span class="badge badge-warn"><span class="dot dot-pulse"></span>Verificando...</span>';
+    else badge = '<span class="badge badge-gray">Pendiente</span>';
+
+    html += `<tr>
+      <td style="color:var(--muted);font-size:12px">${i+1}</td>
+      <td><span class="mono">${a.tipo}</span></td>
+      <td><span class="mono">${a.doc}</span></td>
+      <td class="name-col" title="${a.nombre}">${a.nombre}</td>
+      <td style="font-size:11px;color:var(--muted)">${a.poblacion.replace(/_/g,' ')}</td>
+      <td>${badge}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+  document.getElementById('count-badge').textContent = `${shown} aprendices`;
+  updateStats();
+}
+
+function filterTable(q) { renderTable(q); }
+
+function updateStats() {
+  const ok   = statuses.filter(s => s === 'ok').length;
+  const no   = statuses.filter(s => s === 'no').length;
+  const pend = statuses.filter(s => s === 'pending' || s === 'checking').length;
+  document.getElementById('s-total').textContent = aprendices.length;
+  document.getElementById('s-ok').textContent    = ok;
+  document.getElementById('s-no').textContent    = no;
+  document.getElementById('s-pend').textContent  = pend;
+}
+
+function updateProgress(done, total) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent  = pct + '%';
+  document.getElementById('prog-text').textContent = done >= total
+    ? 'Verificación completada'
+    : `Verificando... (${done}/${total})`;
+}
+
+// ─── DESCARGA EXCEL CON COLUMNA E ────────────────────
+function downloadExcel() {
+  if (!workbook) return;
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+  aprendices.forEach((a, i) => {
+    const cellRef = `E${a.rowIdx + 1}`; // +1 porque Excel es 1-indexed
+    const estado  = statuses[i] === 'ok' ? 'MATRICULADO' : 'NO EXISTE';
+    sheet[cellRef] = { t: 's', v: estado };
+  });
+
+  // Actualizar rango si es necesario
+  const lastRow  = aprendices[aprendices.length - 1].rowIdx + 1;
+  sheet['!ref'] = `A1:F${lastRow}`;
+
+  XLSX.writeFile(workbook, 'ARCHIVO_PLANO_VERIFICADO.xlsx');
+}
+
+// ─── RESET ────────────────────────────────────────────
+function resetAll() {
+  aprendices = [];
+  statuses   = [];
+  workbook   = null;
+  running    = false;
+
+  document.getElementById('upload-zone').classList.remove('file-ready');
+  document.getElementById('upload-text').textContent = 'Arrastra el archivo Excel aquí o haz clic para seleccionar';
+  document.getElementById('btn-start').disabled = true;
+  document.getElementById('btn-dl').style.display = 'none';
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  hideAlert();
+  renderTable('');
+}
+
+// ─── UTILIDADES ───────────────────────────────────────
+function showAlert(type, msg) {
+  const el = document.getElementById('main-alert');
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.style.display = '';
+}
+function hideAlert() { document.getElementById('main-alert').style.display = 'none'; }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Init
+renderTable('');
+</script>
+</body>
+</html>
